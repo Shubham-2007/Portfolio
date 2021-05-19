@@ -132,7 +132,7 @@ p {
   text-transform: uppercase;
 }
 
-.btn:hover, .btn:focus {z
+.btn:hover, .btn:focus {
   color: #fff;
 }
 
