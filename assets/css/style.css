@@ -1,9 +1,4 @@
-/**
-* Template Name: Folio - v4.2.0
-* Template URL: https://bootstrapmade.com/folio-bootstrap-portfolio-template/
-* Author: BootstrapMade.com
-* License: https://bootstrapmade.com/license/
-*/
+
 
 /*--------------------------------------------------------------
 # General
@@ -116,12 +111,12 @@ p {
 }
 
 ::-moz-selection {
-  background: #b8a07e;
+  background: #999;
   color: #fff;
 }
 
 ::selection {
-  background: #b8a07e;
+  background: #999;
   color: #fff;
 }
 
@@ -137,7 +132,7 @@ p {
   text-transform: uppercase;
 }
 
-.btn:hover, .btn:focus {
+.btn:hover, .btn:focus {z
   color: #fff;
 }
 
@@ -190,7 +185,7 @@ p {
 }
 
 .hvr-shutter-in-horizontal:hover {
-  background: #b8a07e;
+  background: #999;
 }
 
 .mb-30 {
@@ -622,12 +617,14 @@ p {
   font-size: 28px;
   text-align: left;
   color: #292929;
+  text-align: justify;
 }
 
 #about .about-descr .separator {
   max-width: 80%;
   margin-bottom: 0;
   text-align: left;
+  text-align: justify;
 }
 
 /*--------------------------------------------------------------
