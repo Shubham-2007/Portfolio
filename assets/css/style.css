@@ -1531,3 +1531,125 @@ blockquote {
     margin-right: 0;
   }
 }
+
+/*--------------------------------------------------------------
+# Experience
+--------------------------------------------------------------*/
+#experience {
+  background: #ffffff;
+}
+
+.timeline {
+  position: relative;
+  max-width: 860px;
+  margin: 0 auto;
+  padding-left: 30px;
+}
+
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: #e0e0e0;
+}
+
+.timeline-item {
+  position: relative;
+  padding-bottom: 45px;
+}
+
+.timeline-item:last-child {
+  padding-bottom: 0;
+}
+
+.timeline-dot {
+  position: absolute;
+  left: -30px;
+  top: 6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid #292929;
+}
+
+.timeline-content .timeline-date {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #898989;
+  margin-bottom: 6px;
+}
+
+.timeline-content h4 {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  color: #292929;
+  margin: 0 0 4px 0;
+}
+
+.timeline-content .timeline-company {
+  font-size: 14px;
+  font-weight: 500;
+  color: #292929;
+  margin-bottom: 12px;
+}
+
+.timeline-content ul {
+  padding-left: 18px;
+  margin: 0;
+}
+
+.timeline-content ul li {
+  font-size: 14px;
+  line-height: 24px;
+  margin-bottom: 8px;
+  text-align: justify;
+}
+
+/*--------------------------------------------------------------
+# Skills
+--------------------------------------------------------------*/
+#skills {
+  background: #f7f7f7;
+}
+
+.skills-grid {
+  margin-top: -15px;
+}
+
+.skills-card {
+  background: #ffffff;
+  border: 1px solid #ececec;
+  padding: 28px 26px;
+  height: 100%;
+  margin-bottom: 30px;
+  transition: all 0.3s ease;
+}
+
+.skills-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+}
+
+.skills-card h4 {
+  font-family: 'Playfair Display', serif;
+  font-size: 19px;
+  color: #292929;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #292929;
+  display: inline-block;
+}
+
+.skills-card p {
+  font-size: 14px;
+  line-height: 24px;
+  margin: 0;
+  color: #6f6f6f;
+}
