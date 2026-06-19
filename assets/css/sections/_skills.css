@@ -1,0 +1,41 @@
+/*--------------------------------------------------------------
+# Skills
+--------------------------------------------------------------*/
+#skills {
+  background: #f7f7f7;
+}
+
+.skills-grid {
+  margin-top: -15px;
+}
+
+.skills-card {
+  background: #ffffff;
+  border: 1px solid #ececec;
+  padding: 28px 26px;
+  height: 100%;
+  margin-bottom: 30px;
+  transition: all 0.3s ease;
+}
+
+.skills-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+}
+
+.skills-card h4 {
+  font-family: 'Playfair Display', serif;
+  font-size: 19px;
+  color: #292929;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #292929;
+  display: inline-block;
+}
+
+.skills-card p {
+  font-size: 14px;
+  line-height: 24px;
+  margin: 0;
+  color: #6f6f6f;
+}
