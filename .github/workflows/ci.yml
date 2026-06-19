@@ -1,55 +1,86 @@
-# CI Pipeline for Portfolio Site
+# ============================================================
+# CI/CD Pipeline for Portfolio Site
+# ============================================================
 #
-# HOW IT WORKS:
-#   1. Triggered on every push to master and every pull request targeting master.
-#   2. Two lint jobs run in PARALLEL (faster than sequential).
-#   3. The deploy job only runs if BOTH lint jobs pass (the "gate").
+# PIPELINE STAGES:
 #
-# This means: broken HTML or CSS will block the deploy automatically.
+#   1. lint-html  ─┐
+#                  ├─► 2. deploy (only if both pass, only on master push)
+#   1. lint-css   ─┘
+#
+# WHAT CI/CD MEANS:
+#   CI = Continuous Integration  → automatically CHECK code quality
+#   CD = Continuous Delivery     → automatically SHIP to production
+#
+# Together: push code → checks run → if clean → live site updates.
+# No manual deploy steps needed.
+# ============================================================
 
-name: CI & Deploy
+name: CI/CD Pipeline
 
-# ─── TRIGGERS ────────────────────────────────────────────────────────────────
+# ─── TRIGGERS ────────────────────────────────────────────────
+# "on" defines WHEN this pipeline wakes up.
+#
+# push to master   → run full pipeline (lint + deploy)
+# pull_request     → run lint jobs only (no deploy — code isn't merged yet)
+#
+# This means every PR gets checked before anyone can merge it.
+# ─────────────────────────────────────────────────────────────
 on:
   push:
-    branches: [master]          # runs on every push to master
+    branches: [master]
   pull_request:
-    branches: [master]          # runs on every PR that targets master
+    branches: [master]
 
-# ─── JOBS ────────────────────────────────────────────────────────────────────
+# ─── JOBS ────────────────────────────────────────────────────
 jobs:
 
-  # ── JOB 1: HTML Linting ──────────────────────────────────────────────────
-  # htmlhint scans all .html files for common mistakes:
-  #   - unclosed tags
-  #   - missing alt attributes on images
-  #   - duplicate IDs
-  #   - invalid attributes
+  # ════════════════════════════════════════════════════════════
+  # JOB 1: HTML LINTING  (CI stage)
+  # ════════════════════════════════════════════════════════════
+  # What: scans every .html file for quality issues
+  # Why:  broken HTML (missing alt, duplicate IDs) gets caught
+  #       before the code ever reaches the live site
+  # ════════════════════════════════════════════════════════════
   lint-html:
     name: Lint HTML
-    runs-on: ubuntu-latest       # GitHub-hosted Linux runner (free)
+    runs-on: ubuntu-latest
+    # runs-on: tells GitHub which type of machine to boot.
+    # "ubuntu-latest" = a fresh Linux VM in GitHub's cloud.
+    # It boots empty — nothing is installed except the OS.
 
     steps:
-      # Step 1: Check out your repository code onto the runner
+      # ── STEP 1 ──────────────────────────────────────────────
+      # Download your repo onto the VM.
+      # Without this, the VM has no code to work with.
+      # actions/checkout is a pre-built action by GitHub.
+      # "@v4" pins it to a specific version (reproducible).
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Install Node.js (needed to run htmlhint via npx)
+      # ── STEP 2 ──────────────────────────────────────────────
+      # Install Node.js on the VM.
+      # htmlhint is a Node.js tool, so Node must exist first.
+      # "node-version: 20" pins the exact version (reproducible).
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      # Step 3: Run htmlhint on every .html file in the project
-      # --config points to our rules file (created below)
+      # ── STEP 3 ──────────────────────────────────────────────
+      # Run the actual linter.
+      # "run:" executes a raw shell command (like your Terminal).
+      # npx = run a Node package without permanently installing it.
+      # Exit code 0 → step passes. Exit code 1 → step fails.
       - name: Run HTMLHint
         run: npx htmlhint@1.1.4 "**/*.html" --config .htmlhintrc
 
-  # ── JOB 2: CSS Linting ───────────────────────────────────────────────────
-  # stylelint checks all CSS files for:
-  #   - syntax errors
-  #   - invalid property values
-  #   - duplicate selectors
+  # ════════════════════════════════════════════════════════════
+  # JOB 2: CSS LINTING  (CI stage)
+  # ════════════════════════════════════════════════════════════
+  # Runs in PARALLEL with lint-html on a separate VM.
+  # Parallel = both start at the same time → pipeline is faster.
+  # ════════════════════════════════════════════════════════════
   lint-css:
     name: Lint CSS
     runs-on: ubuntu-latest
@@ -63,54 +94,133 @@ jobs:
         with:
           node-version: '20'
 
-      # Run stylelint on every .css file under assets/css/
-      # --allow-empty-input prevents failure if a glob matches nothing
       - name: Run Stylelint
         run: npx stylelint@16 "assets/css/**/*.css" --config .stylelintrc.json --allow-empty-input
 
-  # ── JOB 3: Deploy to GitHub Pages ─────────────────────────────────────────
-  # This job only starts when lint-html AND lint-css both succeed.
-  # "needs" is the key: it creates the dependency (the gate).
+  # ════════════════════════════════════════════════════════════
+  # JOB 3: DEPLOY  (CD stage)
+  # ════════════════════════════════════════════════════════════
+  # This is the Continuous Delivery part.
+  #
+  # KEY CONCEPT — "needs:" creates the gate:
+  #   needs: [lint-html, lint-css]
+  #   = "do NOT start this job unless BOTH linters passed"
+  #
+  # If either linter failed → this job is skipped entirely
+  # → deploy-pages action never runs → live site never changes.
+  #
+  # "if:" adds a second condition:
+  #   only deploy on actual pushes to master.
+  #   PRs trigger the linters but never reach this job.
+  # ════════════════════════════════════════════════════════════
   deploy:
     name: Deploy to GitHub Pages
     runs-on: ubuntu-latest
-    needs: [lint-html, lint-css]   # ← THE GATE: both linters must pass first
-
-    # Only deploy on actual pushes to master (not on pull requests)
-    # Pull requests only run the lint jobs as a preview check.
+    needs: [lint-html, lint-css]
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
 
-    # Required permissions for the deploy action to write to GitHub Pages
+    # PERMISSIONS:
+    # GitHub Actions runs with restricted permissions by default.
+    # These three are the minimum required to write to GitHub Pages.
+    # "contents: read"  → can read your repo files
+    # "pages: write"    → can publish to GitHub Pages
+    # "id-token: write" → can authenticate with OIDC (secure token exchange)
     permissions:
       contents: read
       pages: write
       id-token: write
 
-    # Prevent multiple deploys running at the same time
+    # CONCURRENCY:
+    # If two deploys are queued at the same time (e.g. two rapid pushes),
+    # this cancels the older one so only the latest deploy runs.
+    # "group: pages" = name of the lock. Only one "pages" job at a time.
+    # "cancel-in-progress: true" = kill the waiting one, run the new one.
     concurrency:
       group: pages
       cancel-in-progress: true
 
+    # ENVIRONMENT:
+    # Connects this job to the "github-pages" environment in your repo settings.
+    # GitHub uses this to track deployment history and show the live URL.
+    # ${{ steps.deployment.outputs.page_url }} is filled in after deploy runs.
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
+      # ── STEP 1 ──────────────────────────────────────────────
+      # Same as before — download the repo onto this new VM.
+      # Each job gets its own fresh VM, so checkout runs again.
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Configure GitHub Pages
+      # ── STEP 2 ──────────────────────────────────────────────
+      # Prepares GitHub Pages for the upload.
+      # Behind the scenes: validates your Pages settings,
+      # generates a token so the next step can upload.
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
-      # Upload the entire repo as a Pages artifact
-      # (since there is no build step — just static files)
-      - name: Upload Pages artifact
+      # ── STEP 3 ──────────────────────────────────────────────
+      # Packages your entire project folder as an "artifact".
+      # An artifact = a zip of files passed between steps/jobs.
+      # "path: '.'" = include everything from the root folder.
+      # This is where a build step would go if you had one
+      # (e.g. "path: './dist'" after running npm run build).
+      - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'              # upload the whole project root
+          path: '.'
 
-      # Deploy the uploaded artifact to GitHub Pages
+      # ── STEP 4 ──────────────────────────────────────────────
+      # Takes the artifact from Step 3 and publishes it to
+      # GitHub Pages CDN. This is the actual CD moment —
+      # after this step completes, your live site is updated.
+      # "id: deployment" gives this step a name so the
+      # environment URL above can reference its output.
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      # ── STEP 5 ──────────────────────────────────────────────
+      # CD BEST PRACTICE: always print what deployed and where.
+      # This creates a visible record in the Actions run log.
+      # ${{ github.sha }} = the exact commit hash that was deployed.
+      # ${{ steps.deployment.outputs.page_url }} = the live URL.
+      # You can click this URL directly from the Actions run page.
+      - name: Print deploy summary
+        run: |
+          echo "### Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Live URL:** ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+
+  # ════════════════════════════════════════════════════════════
+  # JOB 4: NOTIFY ON FAILURE  (CD best practice)
+  # ════════════════════════════════════════════════════════════
+  # This job only runs when something in the pipeline FAILED.
+  #
+  # "if: failure()" is a special GitHub Actions function.
+  # It returns true only when a previous job failed.
+  #
+  # "needs: [lint-html, lint-css, deploy]" watches all jobs —
+  # so this fires whether the failure was in lint or deploy.
+  #
+  # In a real company this would send a Slack/email notification.
+  # Here it prints a clear failure report to the Actions log.
+  # ════════════════════════════════════════════════════════════
+  notify-failure:
+    name: Report Failure
+    runs-on: ubuntu-latest
+    needs: [lint-html, lint-css, deploy]
+    if: failure()
+
+    steps:
+      - name: Print failure report
+        run: |
+          echo "### Pipeline Failed" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Pushed by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Check the failed job above for the exact error." >> $GITHUB_STEP_SUMMARY
