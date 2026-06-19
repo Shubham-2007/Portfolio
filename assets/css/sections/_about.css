@@ -26,7 +26,6 @@
 #about .about-descr .p-heading {
   font-family: 'Playfair Display', serif;
   font-size: 28px;
-  text-align: left;
   color: #292929;
   text-align: justify;
 }
@@ -34,7 +33,6 @@
 #about .about-descr .separator {
   max-width: 80%;
   margin-bottom: 0;
-  text-align: left;
   text-align: justify;
 }
 

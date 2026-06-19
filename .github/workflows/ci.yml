@@ -1,0 +1,116 @@
+# CI Pipeline for Portfolio Site
+#
+# HOW IT WORKS:
+#   1. Triggered on every push to master and every pull request targeting master.
+#   2. Two lint jobs run in PARALLEL (faster than sequential).
+#   3. The deploy job only runs if BOTH lint jobs pass (the "gate").
+#
+# This means: broken HTML or CSS will block the deploy automatically.
+
+name: CI & Deploy
+
+# ─── TRIGGERS ────────────────────────────────────────────────────────────────
+on:
+  push:
+    branches: [master]          # runs on every push to master
+  pull_request:
+    branches: [master]          # runs on every PR that targets master
+
+# ─── JOBS ────────────────────────────────────────────────────────────────────
+jobs:
+
+  # ── JOB 1: HTML Linting ──────────────────────────────────────────────────
+  # htmlhint scans all .html files for common mistakes:
+  #   - unclosed tags
+  #   - missing alt attributes on images
+  #   - duplicate IDs
+  #   - invalid attributes
+  lint-html:
+    name: Lint HTML
+    runs-on: ubuntu-latest       # GitHub-hosted Linux runner (free)
+
+    steps:
+      # Step 1: Check out your repository code onto the runner
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Install Node.js (needed to run htmlhint via npx)
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Step 3: Run htmlhint on every .html file in the project
+      # --config points to our rules file (created below)
+      - name: Run HTMLHint
+        run: npx htmlhint@1.1.4 "**/*.html" --config .htmlhintrc
+
+  # ── JOB 2: CSS Linting ───────────────────────────────────────────────────
+  # stylelint checks all CSS files for:
+  #   - syntax errors
+  #   - invalid property values
+  #   - duplicate selectors
+  lint-css:
+    name: Lint CSS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Run stylelint on every .css file under assets/css/
+      # --allow-empty-input prevents failure if a glob matches nothing
+      - name: Run Stylelint
+        run: npx stylelint@16 "assets/css/**/*.css" --config .stylelintrc.json --allow-empty-input
+
+  # ── JOB 3: Deploy to GitHub Pages ─────────────────────────────────────────
+  # This job only starts when lint-html AND lint-css both succeed.
+  # "needs" is the key: it creates the dependency (the gate).
+  deploy:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: [lint-html, lint-css]   # ← THE GATE: both linters must pass first
+
+    # Only deploy on actual pushes to master (not on pull requests)
+    # Pull requests only run the lint jobs as a preview check.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+
+    # Required permissions for the deploy action to write to GitHub Pages
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    # Prevent multiple deploys running at the same time
+    concurrency:
+      group: pages
+      cancel-in-progress: true
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Configure GitHub Pages
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      # Upload the entire repo as a Pages artifact
+      # (since there is no build step — just static files)
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'              # upload the whole project root
+
+      # Deploy the uploaded artifact to GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
