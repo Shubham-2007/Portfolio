@@ -2,7 +2,7 @@
 # Hero
 --------------------------------------------------------------*/
 #hero {
-  background: url("../img/home-bg.jpg") repeat scroll center center/cover ;
+  background: url("../../img/home-bg.jpg") repeat scroll center center/cover ;
   opacity: 90%;
   height: 100vh;
   width: 100%;
