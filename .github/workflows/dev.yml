@@ -1,0 +1,130 @@
+# ============================================================
+# DEV Pipeline
+# ============================================================
+#
+# PURPOSE:
+#   Runs on every push to the "dev" branch.
+#   This is your sandbox — a real URL where you can see your
+#   work-in-progress before it ever touches the live site.
+#
+# PHILOSOPHY:
+#   Dev is forgiving. Lint runs but a failure does NOT block
+#   the deploy. You might be mid-feature with known warnings.
+#   The goal here is: "can I see my change on a real URL?"
+#
+# FLOW:
+#   push to dev
+#       │
+#       ├── lint-html  (warns but doesn't block)
+#       ├── lint-css   (warns but doesn't block)
+#       └── deploy-dev (always runs after lint, even if lint failed)
+# ============================================================
+
+name: Dev Pipeline
+
+on:
+  push:
+    branches: [dev]       # only fires on pushes to dev branch
+                          # master pushes are handled by ci.yml
+
+jobs:
+
+  # ════════════════════════════════════════════════════════════
+  # JOB 1: LINT  (informational, non-blocking)
+  # ════════════════════════════════════════════════════════════
+  # "continue-on-error: true" is the key difference from prod.
+  # It means: even if this job fails, the pipeline keeps going.
+  # You'll still SEE the errors in the log — they're warnings.
+  # ════════════════════════════════════════════════════════════
+  lint-html:
+    name: Lint HTML (non-blocking)
+    runs-on: ubuntu-latest
+    continue-on-error: true       # ← lint failure won't stop dev deploy
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run HTMLHint
+        run: npx htmlhint@1.1.4 "**/*.html" --config .htmlhintrc
+
+  lint-css:
+    name: Lint CSS (non-blocking)
+    runs-on: ubuntu-latest
+    continue-on-error: true       # ← same here
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run Stylelint
+        run: npx stylelint@16 "assets/css/**/*.css" --config .stylelintrc.json --allow-empty-input
+
+  # ════════════════════════════════════════════════════════════
+  # JOB 2: DEPLOY TO DEV ENVIRONMENT
+  # ════════════════════════════════════════════════════════════
+  # "needs: [lint-html, lint-css]" still waits for lint to
+  # finish — so you see the lint results before deploy starts.
+  # But because lint jobs have "continue-on-error: true",
+  # they always report as "passed" to the needs: check,
+  # even if the actual linter found errors.
+  #
+  # Result: deploy always runs on dev, lint errors are visible
+  # as warnings in the log but never block you.
+  # ════════════════════════════════════════════════════════════
+  deploy-dev:
+    name: Deploy to Dev
+    runs-on: ubuntu-latest
+    needs: [lint-html, lint-css]
+
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    concurrency:
+      group: pages-dev              # separate lock from production
+      cancel-in-progress: true
+
+    # "dev" environment — separate from "github-pages" (production)
+    # You can see both environments in your repo's sidebar
+    environment:
+      name: dev
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      # Print a clear summary so you know this is the DEV deploy
+      - name: Print dev deploy summary
+        run: |
+          echo "### Dev Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** Development" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Preview URL:** ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> This is a dev preview. Check lint warnings above before merging to master." >> $GITHUB_STEP_SUMMARY
