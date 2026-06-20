@@ -8,9 +8,11 @@ import { initHeader } from './modules/header.js'
 import { initTyped } from './modules/hero.js'
 import { initSliders } from './modules/sliders.js'
 import { initPortfolio } from './modules/portfolio.js'
+import { initServicesBridge } from './modules/services-bridge.js'
 
 initNav()
 initHeader()
 initTyped()
 initSliders()
 initPortfolio()
+initServicesBridge()  // connects to microservices when running locally
