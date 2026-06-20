@@ -1,0 +1,13 @@
+{
+  "name": "contact-service",
+  "version": "1.0.0",
+  "description": "Handles contact form submissions",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test src/index.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
