@@ -1,0 +1,81 @@
+# ============================================================
+# DEV Pipeline
+# ============================================================
+#
+# PURPOSE:
+#   Runs on every push to the "dev" branch.
+#   Lint only — no deploy. GitHub Pages only has one URL
+#   (the production URL), so dev deploys would overwrite prod.
+#
+# TEST LOCALLY:
+#   python3 -m http.server 8000  → http://localhost:8000
+#
+# FLOW:
+#   push to dev
+#       ├── lint-html  (non-blocking — you may be mid-feature)
+#       └── lint-css   (non-blocking)
+#
+# When you're happy with dev, open a PR → master.
+# The production pipeline (ci.yml) runs strict lint + deploy.
+# ============================================================
+
+name: Dev Pipeline
+
+on:
+  push:
+    branches: [dev]
+  pull_request:
+    branches: [master]      # also runs when you open a PR to merge dev → master
+
+jobs:
+
+  lint-html:
+    name: Lint HTML (non-blocking)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run HTMLHint
+        run: npx htmlhint@1.1.4 "**/*.html" --config .htmlhintrc
+
+  lint-css:
+    name: Lint CSS (non-blocking)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run Stylelint
+        run: npx stylelint@16 "assets/css/**/*.css" --config .stylelintrc.json --allow-empty-input
+
+  # Summary so you know the dev check ran
+  dev-summary:
+    name: Dev Check Summary
+    runs-on: ubuntu-latest
+    needs: [lint-html, lint-css]
+    if: always()            # runs even if lint had warnings
+
+    steps:
+      - name: Print summary
+        run: |
+          echo "### Dev Check Complete" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Ready to merge? Open a PR to master." >> $GITHUB_STEP_SUMMARY
+          echo "Production pipeline will run strict lint + deploy." >> $GITHUB_STEP_SUMMARY
