@@ -145,6 +145,25 @@ function wireContactForm() {
   indicator.textContent = '⚡ submits to contact-service :3002 via gateway :3000'
   form.insertBefore(indicator, form.firstChild)
 
+  // Auto-save form fields to localStorage as user types
+  form.addEventListener('input', (e) => {
+    const field = e.target.name || e.target.id
+    if (field) {
+      localStorage.setItem(`form-${field}`, e.target.value)
+    }
+  })
+
+  // Restore form data from localStorage on page load
+  const nameEl = form.querySelector('#name')
+  const emailEl = form.querySelector('#email')
+  const subjectEl = form.querySelector('#subject')
+  const messageEl = form.querySelector('[name="message"]')
+
+  if (nameEl && localStorage.getItem('form-name')) nameEl.value = localStorage.getItem('form-name')
+  if (emailEl && localStorage.getItem('form-email')) emailEl.value = localStorage.getItem('form-email')
+  if (subjectEl && localStorage.getItem('form-subject')) subjectEl.value = localStorage.getItem('form-subject')
+  if (messageEl && localStorage.getItem('form-message')) messageEl.value = localStorage.getItem('form-message')
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault()   // stop the old PHP form submit
 
@@ -186,6 +205,10 @@ function wireContactForm() {
       if (res.ok) {
         showFormMessage(form, 'success', 'Message sent via contact-service ✓')
         form.reset()
+        localStorage.removeItem('form-name')
+        localStorage.removeItem('form-email')
+        localStorage.removeItem('form-subject')
+        localStorage.removeItem('form-message')
       } else {
         // Validation errors from contact-service
         const errors = data.errors?.join(' • ') || 'Something went wrong'
