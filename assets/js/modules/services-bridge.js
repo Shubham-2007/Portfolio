@@ -10,12 +10,16 @@
  */
 
 const GATEWAY = 'http://localhost:3000'
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
 
 // ─── SERVICE STATUS BAR ──────────────────────────────────────────────────────
 // Injects a small banner at the top of the page showing which services
 // are alive. This is your visual proof that services are talking.
 
 async function checkServices() {
+  // Only check services when running locally
+  if (!isLocalhost) return
+
   const services = [
     { name: 'api-gateway',       url: `${GATEWAY}/health`,            port: 3000 },
     { name: 'projects-service',  url: 'http://localhost:3001/health',  port: 3001 },
@@ -184,6 +188,14 @@ function wireContactForm() {
     const originalText = btn.value
     btn.value = 'Sending...'
     btn.disabled = true
+
+    // Only try to send via microservices when running locally
+    if (!isLocalhost) {
+      showFormMessage(form, 'info', 'Contact services are only available locally')
+      btn.value = originalText
+      btn.disabled = false
+      return
+    }
 
     console.group('%c contact-service request', 'color: #00ff88; font-weight: bold')
     console.log('%c POST http://localhost:3000/api/contact', 'color: #888')
