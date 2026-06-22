@@ -259,6 +259,8 @@ function showFormMessage(form, type, text) {
 // ─── INIT ────────────────────────────────────────────────────────────────────
 
 export async function initServicesBridge() {
+  if (!isLocalhost) return  // services only available on localhost
+
   const anyUp = await checkServices()
   if (!anyUp) return       // services not running — do nothing, page works normally
 
